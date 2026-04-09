@@ -1,19 +1,39 @@
-# OMR Detection Web App
+# OMR Detection
 
-Upload OMR sheets (single or folder) and extract answers automatically.
+This project is OMR (Optical Mark Recognition) system built using Flask and OpenCV. It allows users to upload OMR sheet images and automatically extracts marked answers. The extracted results are displayed on the interface and saved in JSON format for further use.
 
 ## Features
-- Upload single OMR files and detect
-- Upload folder (bulk OMR files processing)
+- Upload single or multiple OMR sheet images
+- Bulk upload using folder selection
 - Extract answers (1-A, 2-C, etc.)
-- Excel-style result display
+- Image preprocessing and perspective correction
+- JSON output for each uploaded file
+
+
+## Tech Stack
+- Python
+- Flask
+- OpenCV
+- NumPy
+
+## Project Structure
+project/
+│── app.py                # Main Flask application
+│── omr_detect.py        # OMR processing logic
+│── uploads/             # Uploaded images
+│── output_jsons/        # Extracted results (JSON)
+│── templates/
+│    └── index.html      # Frontend UI
 
 ## Output Video
-Drive URL : https://drive.google.com/file/d/1miuxDDyot-OxA_imJgDtFd860WUeDELa/view?usp=drive_link
+You can watch the working demo of the project here:
+Google Drive Link : https://drive.google.com/file/d/1miuxDDyot-OxA_imJgDtFd860WUeDELa/view?usp=drive_link
+
+
 ## Run Locally
 
 ```bash
 pip install -r requirements.txt
 python app.py
 
-Open: http://127.0.0.1:5000
+Open in browser: http://127.0.0.1:5000
