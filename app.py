@@ -4,14 +4,33 @@ import json
 
 from omr_detect import preprocess_and_warp, split_into_columns, manual_crop_column, process_column
 from flask import send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+
 
 app = Flask(__name__)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///omr.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
 
 UPLOAD_FOLDER = "uploads"
 OUTPUT_FOLDER = "output_jsons"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+class OMRFile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(200))
+    answers = db.relationship('OMRAnswer', backref='file', uselist=False)
+
+
+class OMRAnswer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    answers_json = db.Column(db.Text)
+
+    file_id = db.Column(db.Integer, db.ForeignKey('omr_file.id'), nullable=False)
 
 options = ['A', 'B', 'C', 'D']
 
@@ -47,6 +66,21 @@ def index():
                     all_answers.extend(answers)
 
                 final_answers = [f"{i+1}-{options[a]}" for i, a in enumerate(all_answers)]
+                
+                omr_file = OMRFile(filename=filename)
+                db.session.add(omr_file)
+                db.session.commit()
+
+                # 2. Save JSON answers
+                omr_answer = OMRAnswer(
+                    answers_json=json.dumps(final_answers),
+                    file_id=omr_file.id
+                )
+
+                db.session.add(omr_answer)
+                db.session.commit()
+
+                results[filename] = final_answers
 
                 output_file = os.path.join(OUTPUT_FOLDER, filename + ".json")
                 with open(output_file, "w") as f:
@@ -66,4 +100,6 @@ def uploaded_file(filename):
 
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
