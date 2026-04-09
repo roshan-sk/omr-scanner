@@ -8,7 +8,8 @@ Upload OMR sheets (single or folder) and extract answers automatically.
 - Extract answers (1-A, 2-C, etc.)
 - Excel-style result display
 
-
+## Output Video
+Drive URL : https://drive.google.com/file/d/1miuxDDyot-OxA_imJgDtFd860WUeDELa/view?usp=drive_link
 ## Run Locally
 
 ```bash
