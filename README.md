@@ -16,16 +16,6 @@ This project is OMR (Optical Mark Recognition) system built using Flask and Open
 - OpenCV
 - NumPy
 
-## Project Structure
-project/
-│── app.py                # Main Flask application
-│── omr_detect.py        # OMR processing logic
-│── uploads/             # Uploaded images
-│── output_jsons/        # Extracted results (JSON)
-│── templates/
-│    └── index.html      # Frontend UI
-
-## Output Video
 You can watch the working demo of the project here:
 Google Drive Link : https://drive.google.com/file/d/1miuxDDyot-OxA_imJgDtFd860WUeDELa/view?usp=drive_link
 
