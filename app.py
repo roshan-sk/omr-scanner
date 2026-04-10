@@ -1,11 +1,17 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_from_directory
 import os
 import json
+import cv2
 
-from omr_detect import preprocess_and_warp, split_into_columns, manual_crop_column, process_column
-from flask import send_from_directory
+from omr_detect import (
+    preprocess_and_warp,
+    split_into_columns,
+    manual_crop_column,
+    process_column,
+    crop_answer_area   # ✅ added
+)
+
 from flask_sqlalchemy import SQLAlchemy
-
 
 app = Flask(__name__)
 
@@ -20,6 +26,7 @@ OUTPUT_FOLDER = "output_jsons"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
+
 class OMRFile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(200))
@@ -29,10 +36,11 @@ class OMRFile(db.Model):
 class OMRAnswer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     answers_json = db.Column(db.Text)
-
     file_id = db.Column(db.Integer, db.ForeignKey('omr_file.id'), nullable=False)
 
+
 options = ['A', 'B', 'C', 'D']
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -50,28 +58,44 @@ def index():
                 continue
 
             filename = os.path.basename(file.filename)
-
             input_path = os.path.join(UPLOAD_FOLDER, filename)
             file.save(input_path)
 
             try:
-                warped = preprocess_and_warp(input_path)
+                # ✅ Read image
+                full_img = cv2.imread(input_path)
+
+                # ✅ Crop answer area (NEW)
+                cropped_img = crop_answer_area(full_img)
+
+                # ✅ Warp image
+                warped = preprocess_and_warp(cropped_img)
+
+                # ✅ Split columns
                 columns = split_into_columns(warped)
 
                 all_answers = []
 
                 for i, col in enumerate(columns):
                     cleaned_col = manual_crop_column(col)
-                    answers = process_column(cleaned_col, i+1)
+                    answers = process_column(cleaned_col, i + 1)
                     all_answers.extend(answers)
 
-                final_answers = [f"{i+1}-{options[a]}" for i, a in enumerate(all_answers)]
-                
+                # ✅ Handle Empty & Multiple
+                final_answers = []
+                for i, a in enumerate(all_answers):
+                    if a == -1:
+                        final_answers.append(f"{i+1}-Empty")
+                    elif a == -2:
+                        final_answers.append(f"{i+1}-Multiple")
+                    else:
+                        final_answers.append(f"{i+1}-{options[a]}")
+
+                # ✅ Save to DB
                 omr_file = OMRFile(filename=filename)
                 db.session.add(omr_file)
                 db.session.commit()
 
-                # 2. Save JSON answers
                 omr_answer = OMRAnswer(
                     answers_json=json.dumps(final_answers),
                     file_id=omr_file.id
@@ -80,8 +104,7 @@ def index():
                 db.session.add(omr_answer)
                 db.session.commit()
 
-                results[filename] = final_answers
-
+                # ✅ Save JSON file
                 output_file = os.path.join(OUTPUT_FOLDER, filename + ".json")
                 with open(output_file, "w") as f:
                     json.dump(final_answers, f, indent=4)
