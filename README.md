@@ -8,6 +8,9 @@ This project is OMR (Optical Mark Recognition) system built using Flask and Open
 - Extract answers (1-A, 2-C, etc.)
 - Image preprocessing and perspective correction
 - JSON output for each uploaded file
+- Detect filled bubbles
+- Identify empty questions (no bubble marked)
+- Detect multiple marked bubbles in a question
 
 
 ## Tech Stack
