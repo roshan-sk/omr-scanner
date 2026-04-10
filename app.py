@@ -8,7 +8,7 @@ from omr_detect import (
     split_into_columns,
     manual_crop_column,
     process_column,
-    crop_answer_area   # ✅ added
+    crop_answer_area
 )
 
 from flask_sqlalchemy import SQLAlchemy
@@ -62,16 +62,12 @@ def index():
             file.save(input_path)
 
             try:
-                # ✅ Read image
                 full_img = cv2.imread(input_path)
 
-                # ✅ Crop answer area (NEW)
                 cropped_img = crop_answer_area(full_img)
 
-                # ✅ Warp image
                 warped = preprocess_and_warp(cropped_img)
 
-                # ✅ Split columns
                 columns = split_into_columns(warped)
 
                 all_answers = []
@@ -81,7 +77,6 @@ def index():
                     answers = process_column(cleaned_col, i + 1)
                     all_answers.extend(answers)
 
-                # ✅ Handle Empty & Multiple
                 final_answers = []
                 for i, a in enumerate(all_answers):
                     if a == -1:
@@ -91,7 +86,6 @@ def index():
                     else:
                         final_answers.append(f"{i+1}-{options[a]}")
 
-                # ✅ Save to DB
                 omr_file = OMRFile(filename=filename)
                 db.session.add(omr_file)
                 db.session.commit()
@@ -104,7 +98,6 @@ def index():
                 db.session.add(omr_answer)
                 db.session.commit()
 
-                # ✅ Save JSON file
                 output_file = os.path.join(OUTPUT_FOLDER, filename + ".json")
                 with open(output_file, "w") as f:
                     json.dump(final_answers, f, indent=4)

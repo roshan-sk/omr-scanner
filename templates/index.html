@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>OMR Scanner</title>
 
@@ -9,7 +10,6 @@
             background: linear-gradient(135deg, #1e1e2f, #2b5876);
             color: white;
             margin: 0;
-            /* overflow: hidden; */
         }
 
         h1 {
@@ -24,7 +24,7 @@
         }
 
         .card {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             padding: 20px;
             border-radius: 15px;
             margin-bottom: 20px;
@@ -38,7 +38,7 @@
 
         .upload-box {
             flex: 1;
-            background: rgba(0,0,0,0.3);
+            background: rgba(0, 0, 0, 0.3);
             padding: 15px;
             border-radius: 10px;
             text-align: center;
@@ -78,10 +78,11 @@
             border-collapse: collapse;
             width: 100%;
             min-width: 120px;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0, 0, 0, 0.4);
         }
 
-        th, td {
+        th,
+        td {
             padding: 8px;
             text-align: center;
             border-bottom: 1px solid #555;
@@ -89,24 +90,26 @@
 
         th {
             background: rgb(0, 0, 0);
-            color: #fff; 
+            color: #fff;
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
         tr:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .file-name {
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.6);
             font-weight: bold;
         }
+
         .file-name a:hover {
             color: #ffffff;
             text-decoration: underline;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -116,7 +119,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.9);
+            background-color: rgba(0, 0, 0, 0.9);
         }
 
         .modal-content {
@@ -135,105 +138,104 @@
             font-size: 40px;
             cursor: pointer;
         }
-
     </style>
 </head>
 
 <body>
 
-<h1>OMR DETECT AND EXTRACT</h1>
+    <h1>OMR DETECT AND EXTRACT</h1>
 
-<div class="container">
+    <div class="container">
 
-    <div class="card">
-        <h2>Upload Files / Folder</h2>
+        <div class="card">
+            <h2>Upload Files / Folder</h2>
 
-        <form method="POST" enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data">
 
-            <div class="upload-row">
+                <div class="upload-row">
 
-                <div class="upload-box">
-                    <h3>Upload Files</h3>
-                    <input type="file" name="files" multiple>
+                    <div class="upload-box">
+                        <h3>Upload Files</h3>
+                        <input type="file" name="files" multiple>
+                    </div>
+
+                    <div class="upload-box">
+                        <h3>Upload Folder(Bulk File)</h3>
+                        <input type="file" name="folder" webkitdirectory multiple>
+                    </div>
+
                 </div>
 
-                <div class="upload-box">
-                    <h3>Upload Folder(Bulk File)</h3>
-                    <input type="file" name="folder" webkitdirectory multiple>
+                <br>
+                <div class="btn-container">
+                    <button type="submit">Submit</button>
                 </div>
 
-            </div>
-
-            <br>
-            <div class="btn-container">
-                <button type="submit">Submit</button>
-            </div>
-
-        </form>
-    </div>
-
-    {% if results %}
-    <div class="card">
-        <h2>Extracted Results From Sheet</h2>
-
-        <div class="table-container">
-            <table>
-
-                <thead>
-    <tr>
-        <th>Question</th>
-        {% for file in results.keys() %}
-        <th class="file-name">
-            <a href="#" onclick="openImage('{{ file }}')">
-                {{ file }}
-            </a>
-        </th>
-        {% endfor %}
-    </tr>
-</thead>
-
-<tbody>
-    {% set total = results.values()|list|first|length %}
-
-    {% for i in range(total) %}
-    <tr>
-        <td class="file-name">Q{{ i+1 }}</td>
-
-        {% for file, answers in results.items() %}
-        <td>
-            {{ answers[i].split('-')[1] }}
-        </td>
-        {% endfor %}
-    </tr>
-    {% endfor %}
-</tbody>
-
-            </table>
+            </form>
         </div>
+
+        {% if results %}
+        <div class="card">
+            <h2>Extracted Results From Sheet</h2>
+
+            <div class="table-container">
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            {% for file in results.keys() %}
+                            <th class="file-name">
+                                <a href="#" onclick="openImage('{{ file }}')">
+                                    {{ file }}
+                                </a>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% set total = results.values()|list|first|length %}
+
+                        {% for i in range(total) %}
+                        <tr>
+                            <td class="file-name">Q{{ i+1 }}</td>
+
+                            {% for file, answers in results.items() %}
+                            <td>
+                                {{ answers[i].split('-')[1] }}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
-    {% endif %}
+    <div id="imageModal" class="modal">
+        <span class="close" onclick="closeImage()">&times;</span>
+        <img class="modal-content" id="modalImg">
+    </div>
 
-</div>
-<div id="imageModal" class="modal">
-    <span class="close" onclick="closeImage()">&times;</span>
-    <img class="modal-content" id="modalImg">
-</div>
+    <script>
+        function openImage(fileName) {
+            const modal = document.getElementById("imageModal");
+            const img = document.getElementById("modalImg");
 
-<script>
-function openImage(fileName) {
-    const modal = document.getElementById("imageModal");
-    const img = document.getElementById("modalImg");
+            img.src = "/uploads/" + fileName;
 
-    // 🔥 IMPORTANT: adjust path based on your backend
-    img.src = "/uploads/" + fileName;
+            modal.style.display = "block";
+        }
 
-    modal.style.display = "block";
-}
-
-function closeImage() {
-    document.getElementById("imageModal").style.display = "none";
-}
-</script>
+        function closeImage() {
+            document.getElementById("imageModal").style.display = "none";
+        }
+    </script>
 
 </body>
+
 </html>
