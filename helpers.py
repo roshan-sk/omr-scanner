@@ -79,10 +79,6 @@ def build_excel(sheet_ids=None, latest_only=False):
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    filename = (
-        f"latest_upload_{timestamp}.xlsx"
-        if latest_only
-        else f"omr_results_{timestamp}.xlsx"
-    )
+    filename = f"omr_results_{timestamp}.xlsx"
 
     return output, filename
