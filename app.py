@@ -6,7 +6,10 @@ from flask import (
     request,
     send_from_directory,
     send_file,
-    session
+    session,
+    redirect,
+    url_for,
+    flash
 )
 
 from omr_detect import (
@@ -38,18 +41,20 @@ options = ["A", "B", "C", "D"]
 @app.route("/", methods=["GET", "POST"])
 def index():
     results = None
-    total_questions = max(150, AnswerKey.query.count())
+
+    existing_keys = {
+        ak.question_no: ak.correct_option
+        for ak in AnswerKey.query.all()
+    }
+
+    total_questions = max(150, len(existing_keys))
 
     if request.method == "POST":
         files = request.files.getlist("files")
         results = {}
         latest_sheet_ids = []
-        answer_keys= AnswerKey.query.all()
 
-        answer_key = {
-            ak.question_no: ak.correct_option
-            for ak in answer_keys
-        }
+        answer_key = existing_keys
 
         for file in files:
             if file.filename == "":
@@ -122,14 +127,13 @@ def index():
     return render_template(
         "index.html",
         results=results,
-        total_questions=total_questions
+        total_questions=total_questions,
+        existing_keys=existing_keys
     )
 
 
 @app.route("/save_answer_key", methods=["POST"])
 def save_answer_key():
-    AnswerKey.query.delete()
-
     total = int(request.form.get("total_questions", 150))
 
     for i in range(1, total + 1):
@@ -137,16 +141,24 @@ def save_answer_key():
 
         if ans:
             q_no = f"Q{str(i).zfill(3)}"
+            ans = ans.strip().upper()
 
-            db.session.add(
-                AnswerKey(
-                    question_no=q_no,
-                    correct_option=ans.strip().upper()
+            existing = AnswerKey.query.filter_by(question_no=q_no).first()
+
+            if existing:
+                existing.correct_option = ans
+            else:
+                db.session.add(
+                    AnswerKey(
+                        question_no=q_no,
+                        correct_option=ans
+                    )
                 )
-            )
 
     db.session.commit()
-    return "Answer Key Saved Successfully!"
+    flash("Answer Key Updated Successfully!", "success")
+    return redirect(url_for("index"))
+
 
 
 

@@ -245,6 +245,35 @@
             border-radius: 16px;
             text-align: center;
         }
+
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 99999;
+        }
+
+        .toast {
+            background: #10b981;
+            color: white;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-weight: bold;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
+            animation: slideIn .3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
     </style>
 </head>
 
@@ -370,20 +399,29 @@
                         <label>Q{{ "%03d"|format(i) }}</label>
 
                         <div class="option-group">
-                            <button class="option-btn" type="button" data-q="{{ i }}" data-val="A"
+                            <button
+                                class="option-btn {% if existing_keys.get('Q' + '%03d'|format(i)) == 'A' %}active{% endif %}"
+                                type="button" data-q="{{ i }}" data-val="A"
                                 onclick="setAnswer(this.dataset.q,this.dataset.val,this)">A</button>
 
-                            <button class="option-btn" type="button" data-q="{{ i }}" data-val="B"
+                            <button
+                                class="option-btn {% if existing_keys.get('Q' + '%03d'|format(i)) == 'B' %}active{% endif %}"
+                                type="button" data-q="{{ i }}" data-val="B"
                                 onclick="setAnswer(this.dataset.q,this.dataset.val,this)">B</button>
 
-                            <button class="option-btn" type="button" data-q="{{ i }}" data-val="C"
+                            <button
+                                class="option-btn {% if existing_keys.get('Q' + '%03d'|format(i)) == 'C' %}active{% endif %}"
+                                type="button" data-q="{{ i }}" data-val="C"
                                 onclick="setAnswer(this.dataset.q,this.dataset.val,this)">C</button>
 
-                            <button class="option-btn" type="button" data-q="{{ i }}" data-val="D"
+                            <button
+                                class="option-btn {% if existing_keys.get('Q' + '%03d'|format(i)) == 'D' %}active{% endif %}"
+                                type="button" data-q="{{ i }}" data-val="D"
                                 onclick="setAnswer(this.dataset.q,this.dataset.val,this)">D</button>
-                        </div>
 
-                        <input type="hidden" name="q{{ i }}">
+                            <input type="hidden" name="q{{ i }}"
+                                value="{{ existing_keys.get('Q' + '%03d'|format(i), '') }}">
+                        </div>
                     </div>
                     {% endfor %}
 
@@ -422,6 +460,14 @@
                 document.getElementById(id).style.display = "none";
             }
         }
+        setTimeout(() => {
+            const toast = document.getElementById("toast-container");
+            if (toast) {
+                toast.style.transition = "0.4s";
+                toast.style.opacity = "0";
+                setTimeout(() => toast.remove(), 400);
+            }
+        }, 1000);
     </script>
 
 </body>
