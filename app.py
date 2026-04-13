@@ -1,7 +1,13 @@
-from flask import Flask, render_template, request, send_from_directory
 import os
-import json
 import cv2
+from flask import (
+    Flask,
+    render_template,
+    request,
+    send_from_directory,
+    send_file,
+    session
+)
 
 from omr_detect import (
     preprocess_and_warp,
@@ -11,108 +17,166 @@ from omr_detect import (
     crop_answer_area
 )
 
-from flask_sqlalchemy import SQLAlchemy
+from models import db, OMRSheet, OMRAnswer, AnswerKey
+from helpers import build_excel
 
 app = Flask(__name__)
+app.secret_key = "omr-secret-key"
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///omr.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///omr.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db.init_app(app)
 
 UPLOAD_FOLDER = "uploads"
-OUTPUT_FOLDER = "output_jsons"
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-
-class OMRFile(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(200))
-    answers = db.relationship('OMRAnswer', backref='file', uselist=False)
-
-
-class OMRAnswer(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    answers_json = db.Column(db.Text)
-    file_id = db.Column(db.Integer, db.ForeignKey('omr_file.id'), nullable=False)
-
-
-options = ['A', 'B', 'C', 'D']
+options = ["A", "B", "C", "D"]
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     results = None
+    total_questions = max(150, AnswerKey.query.count())
 
     if request.method == "POST":
         files = request.files.getlist("files")
-        folder_files = request.files.getlist("folder")
-
-        all_inputs = files + folder_files
         results = {}
+        latest_sheet_ids = []
+        answer_keys= AnswerKey.query.all()
 
-        for file in all_inputs:
+        answer_key = {
+            ak.question_no: ak.correct_option
+            for ak in answer_keys
+        }
+
+        for file in files:
             if file.filename == "":
                 continue
 
             filename = os.path.basename(file.filename)
-            input_path = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(input_path)
+            path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(path)
 
             try:
-                full_img = cv2.imread(input_path)
+                img = cv2.imread(path)
 
-                cropped_img = crop_answer_area(full_img)
+                if img is None:
+                    raise Exception("Image not readable")
 
-                warped = preprocess_and_warp(cropped_img)
-
+                cropped = crop_answer_area(img)
+                warped = preprocess_and_warp(cropped)
                 columns = split_into_columns(warped)
 
                 all_answers = []
 
                 for i, col in enumerate(columns):
-                    cleaned_col = manual_crop_column(col)
-                    answers = process_column(cleaned_col, i + 1)
+                    cleaned = manual_crop_column(col)
+                    answers = process_column(cleaned, i + 1)
                     all_answers.extend(answers)
 
+                sheet = OMRSheet(sheet_name=filename)
+                db.session.add(sheet)
+                db.session.commit()
+
+                latest_sheet_ids.append(sheet.id)
+
                 final_answers = []
+
                 for i, a in enumerate(all_answers):
+                    q_no = f"Q{str(i+1).zfill(3)}"
+
                     if a == -1:
-                        final_answers.append(f"{i+1}-Empty")
+                        selected = "Empty"
                     elif a == -2:
-                        final_answers.append(f"{i+1}-Multiple")
+                        selected = "Multiple"
                     else:
-                        final_answers.append(f"{i+1}-{options[a]}")
+                        selected = options[a]
 
-                omr_file = OMRFile(filename=filename)
-                db.session.add(omr_file)
+                    correct = answer_key.get(q_no)
+                    is_correct = selected == correct
+
+                    db.session.add(
+                        OMRAnswer(
+                            question_no=q_no,
+                            selected_option=selected,
+                            is_correct=is_correct,
+                            sheet_id=sheet.id
+                        )
+                    )
+
+                    final_answers.append({
+                        "value": selected,
+                        "is_correct": is_correct
+                    })
+
                 db.session.commit()
-
-                omr_answer = OMRAnswer(
-                    answers_json=json.dumps(final_answers),
-                    file_id=omr_file.id
-                )
-
-                db.session.add(omr_answer)
-                db.session.commit()
-
-                output_file = os.path.join(OUTPUT_FOLDER, filename + ".json")
-                with open(output_file, "w") as f:
-                    json.dump(final_answers, f, indent=4)
-
                 results[filename] = final_answers
 
             except Exception as e:
                 results[filename] = f"Error: {str(e)}"
 
-    return render_template("index.html", results=results)
+        session["latest_sheet_ids"] = latest_sheet_ids
+
+    return render_template(
+        "index.html",
+        results=results,
+        total_questions=total_questions
+    )
 
 
-@app.route('/uploads/<filename>')
+@app.route("/save_answer_key", methods=["POST"])
+def save_answer_key():
+    AnswerKey.query.delete()
+
+    total = int(request.form.get("total_questions", 150))
+
+    for i in range(1, total + 1):
+        ans = request.form.get(f"q{i}")
+
+        if ans:
+            q_no = f"Q{str(i).zfill(3)}"
+
+            db.session.add(
+                AnswerKey(
+                    question_no=q_no,
+                    correct_option=ans.strip().upper()
+                )
+            )
+
+    db.session.commit()
+    return "Answer Key Saved Successfully!"
+
+
+
+@app.route("/uploads/<filename>")
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
+
+
+
+@app.route("/export_latest_excel")
+def export_latest_excel():
+    ids = session.get("latest_sheet_ids", [])
+
+    if not ids:
+        return "No Latest Upload Found"
+
+    data = build_excel(sheet_ids=ids, latest_only=True)
+
+    if not data:
+        return "No Data Found"
+
+    output, filename = data
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 
 
 if __name__ == "__main__":

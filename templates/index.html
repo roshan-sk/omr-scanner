@@ -1,154 +1,266 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>OMR Scanner</title>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #1e1e2f, #2b5876);
-            color: white;
-            margin: 0;
+        :root {
+            --bg1: #0f172a;
+            --bg2: #1d4ed8;
+            --card: rgba(255, 255, 255, .08);
+            --line: rgba(255, 255, 255, .12);
+            --text: #e5e7eb;
+            --accent: #22d3ee;
         }
 
-        h1 {
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg1), var(--bg2));
+            color: var(--text);
+        }
+
+        .header {
+            padding: 24px;
             text-align: center;
-            margin-top: 20px;
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .top-bar {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding: 0 24px 16px;
+            flex-wrap: wrap;
         }
 
         .container {
-            width: 95%;
+            width: min(96%, 1600px);
             margin: auto;
-            margin-top: 30px;
+            padding-bottom: 24px;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--card);
+            border: 1px solid var(--line);
             padding: 20px;
-            border-radius: 15px;
+            border-radius: 20px;
             margin-bottom: 20px;
         }
 
         .upload-row {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr;
             gap: 20px;
+            width: 100%;
         }
 
-        .upload-box {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        input[type="file"] {
-            margin: 10px;
+        .file {
             padding: 10px;
-            background: white;
-            color: black;
-            border-radius: 8px;
-            width: 90%;
+            background: #ffffff14;
+            border-radius: 12px;
+            width: 1000%;
+            max-width: 800px;
+            margin-top: 10px;
         }
 
-        button {
-            padding: 10px 25px;
+        .btn {
             border: none;
-            border-radius: 25px;
-            background: linear-gradient(to right, #0072ff, #00c6ff);
-            color: white;
-            font-size: 16px;
+            padding: 11px 18px;
+            border-radius: 999px;
             cursor: pointer;
-            justify-content: center;
-        }
-
-        .btn-container {
-            display: flex;
-            justify-content: center;
+            color: white;
+            font-weight: 700;
+            background: linear-gradient(90deg, #06b6d4, #3b82f6);
         }
 
         .table-container {
-            max-height: 500px;
-            overflow-x: auto;
+            overflow: auto;
+            max-height: 70vh;
+            border-radius: 16px;
         }
 
         table {
-            border-collapse: collapse;
             width: 100%;
-            min-width: 120px;
-            background: rgba(0, 0, 0, 0.4);
+            border-collapse: collapse;
+            background: #02061766;
         }
 
         th,
         td {
-            padding: 8px;
+            padding: 10px;
+            border-bottom: 1px solid #334155;
             text-align: center;
-            border-bottom: 1px solid #555;
+            white-space: nowrap;
         }
 
         th {
-            background: rgb(0, 0, 0);
-            color: #fff;
+            background: #0b1220;
+        }
+
+        .table-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .table-title {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .sticky-left {
             position: sticky;
+            left: 0;
             top: 0;
-            z-index: 100;
+            background: #0b1220;
+            z-index: 6;
+            min-width: 180px;
         }
 
-        tr:hover {
-            background: rgba(255, 255, 255, 0.1);
+        .sticky-right-1 {
+            position: sticky;
+            right: 0;
+            top: 0;
+            background: #0b1220;
+            z-index: 6;
+            min-width: 100px;
         }
 
-        .file-name {
-            background: rgba(0, 0, 0, 0.6);
-            font-weight: bold;
+        .sticky-right-2 {
+            position: sticky;
+            right: 100px;
+            top: 0;
+            background: #0b1220;
+            z-index: 6;
+            min-width: 110px;
         }
 
-        .file-name a:hover {
-            color: #ffffff;
-            text-decoration: underline;
+
+        .sticky-left,
+        .sticky-right-1,
+        .sticky-right-2 {
+            z-index: 1;
+        }
+
+        .sheet-link {
+            color: #93c5fd;
+            text-decoration: none;
+        }
+
+        .correct-text {
+            color: #34d399;
+            font-weight: 800;
+        }
+
+        .score {
+            font-weight: 800;
+            background: #111827;
         }
 
         .modal {
             display: none;
             position: fixed;
-            z-index: 999;
-            padding-top: 50px;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
+            inset: 0;
+            background: rgba(0, 0, 0, .85);
+            padding: 30px;
+            overflow: auto;
+            z-index: 50;
         }
 
-        .modal-content {
-            display: block;
+        .modal-panel {
+            position: relative;
+            z-index: -10000;
+            max-width: 1200px;
             margin: auto;
-            max-width: 80%;
-            max-height: 80%;
-            border-radius: 10px;
+            background: #0f172a;
+            border: 1px solid var(--line);
+            padding: 20px;
+            border-radius: 20px;
         }
 
         .close {
-            position: absolute;
-            top: 20px;
-            right: 40px;
-            color: white;
-            font-size: 40px;
+            float: right;
+            font-size: 36px;
             cursor: pointer;
+        }
+
+        .preview {
+            display: block;
+            max-width: 100%;
+            max-height: 80vh;
+            margin: auto;
+        }
+
+        .answer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .answer-box {
+            background: #ffffff0d;
+            padding: 10px;
+            border-radius: 14px;
+            text-align: center;
+        }
+
+        .option-group {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .option-btn {
+            padding: 7px;
+            border: none;
+            border-radius: 10px;
+            background: #1e293b;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .option-btn.active,
+        .option-btn:hover {
+            background: var(--accent);
+            color: #001018;
+        }
+
+        .upload-box {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>OMR DETECT AND EXTRACT</h1>
+    <div class="header">OMR DETECT & EXTRACT</div>
+
+    <div class="top-bar">
+        <button class="btn" onclick="openModal()">Answer Key</button>
+
+    </div>
 
     <div class="container">
 
         <div class="card">
-            <h2>Upload Files / Folder</h2>
+            <h2 style="margin-bottom:15px;">Upload Scanned Files</h2>
 
             <form method="POST" enctype="multipart/form-data">
 
@@ -156,19 +268,14 @@
 
                     <div class="upload-box">
                         <h3>Upload Files</h3>
-                        <input type="file" name="files" multiple>
+                        <input class="file" type="file" name="files" multiple>
                     </div>
-
-                    <div class="upload-box">
-                        <h3>Upload Folder(Bulk File)</h3>
-                        <input type="file" name="folder" webkitdirectory multiple>
-                    </div>
-
                 </div>
 
                 <br>
-                <div class="btn-container">
-                    <button type="submit">Submit</button>
+
+                <div style="text-align:center;">
+                    <button class="btn" type="submit">Submit</button>
                 </div>
 
             </form>
@@ -176,63 +283,144 @@
 
         {% if results %}
         <div class="card">
-            <h2>Extracted Results From Sheet</h2>
+            <div class="table-top">
+                <div class="table-title">Results</div>
+
+                <a href="/export_latest_excel">
+                    <button class="btn">Export Latest</button>
+                </a>
+            </div>
 
             <div class="table-container">
                 <table>
-
                     <thead>
                         <tr>
-                            <th>Question</th>
-                            {% for file in results.keys() %}
-                            <th class="file-name">
-                                <a href="#" onclick="openImage('{{ file }}')">
-                                    {{ file }}
-                                </a>
+                            <th class="sticky-left">Sheet</th>
+
+                            {% set total = results.values()|list|first|length %}
+                            {% for i in range(total) %}
+                            <th style="position:sticky;top:0;background:#0b1220;">
+                                Q{{ "%03d"|format(i+1) }}
                             </th>
                             {% endfor %}
+
+                            <th class="sticky-right-2">Score</th>
+                            <th class="sticky-right-1">Filled</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        {% set total = results.values()|list|first|length %}
-
-                        {% for i in range(total) %}
+                        {% for file, answers in results.items() %}
                         <tr>
-                            <td class="file-name">Q{{ i+1 }}</td>
 
-                            {% for file, answers in results.items() %}
+                            <td class="sticky-left">
+                                <a class="sheet-link" href="javascript:void(0)" onclick="openImage('{{ file }}')">{{
+                                    file }}</a>
+                            </td>
+
+                            {% for ans in answers %}
                             <td>
-                                {{ answers[i].split('-')[1] }}
+                                <span class="{% if ans.is_correct %}correct-text{% endif %}">
+                                    {{ ans.value }}
+                                </span>
                             </td>
                             {% endfor %}
+
+                            {% set score = answers|selectattr('is_correct')|list|length %}
+                            <td class="score sticky-right-2">{{ score }}/{{ answers|length }}</td>
+
+                            {% set filled = answers|rejectattr('value','equalto','Empty')|rejectattr('value','equalto','Multiple')|list|length %}
+                            <td class="score sticky-right-1">{{ filled }}</td>
+
                         </tr>
                         {% endfor %}
                     </tbody>
-
                 </table>
             </div>
         </div>
         {% endif %}
-
     </div>
-    <div id="imageModal" class="modal">
-        <span class="close" onclick="closeImage()">&times;</span>
-        <img class="modal-content" id="modalImg">
+
+
+    <div id="imageModal" class="modal" onclick="outsideClose(event,'imageModal')">
+        <div class="modal-panel">
+            <span class="close" onclick="closeImage()">&times;</span>
+            <img id="modalImg" class="preview">
+        </div>
+    </div>
+
+
+    <div id="modal" class="modal" onclick="outsideClose(event,'modal')">
+        <div class="modal-panel">
+
+            <span class="close" onclick="closeModal()">&times;</span>
+
+            <form method="POST" action="/save_answer_key">
+
+                <div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-bottom:15px;">
+                    <div>Total Questions: <b>{{ total_questions }}</b></div>
+                    <input type="hidden" name="total_questions" value="{{ total_questions }}">
+                </div>
+
+                <div class="answer-grid">
+
+                    {% for i in range(1,total_questions+1) %}
+                    <div class="answer-box">
+
+                        <label>Q{{ "%03d"|format(i) }}</label>
+
+                        <div class="option-group">
+                            <button class="option-btn" type="button" data-q="{{ i }}" data-val="A"
+                                onclick="setAnswer(this.dataset.q,this.dataset.val,this)">A</button>
+
+                            <button class="option-btn" type="button" data-q="{{ i }}" data-val="B"
+                                onclick="setAnswer(this.dataset.q,this.dataset.val,this)">B</button>
+
+                            <button class="option-btn" type="button" data-q="{{ i }}" data-val="C"
+                                onclick="setAnswer(this.dataset.q,this.dataset.val,this)">C</button>
+
+                            <button class="option-btn" type="button" data-q="{{ i }}" data-val="D"
+                                onclick="setAnswer(this.dataset.q,this.dataset.val,this)">D</button>
+                        </div>
+
+                        <input type="hidden" name="q{{ i }}">
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <br>
+                <button class="btn" type="submit">Save Answer Key</button>
+
+            </form>
+        </div>
     </div>
 
     <script>
-        function openImage(fileName) {
-            const modal = document.getElementById("imageModal");
-            const img = document.getElementById("modalImg");
-
-            img.src = "/uploads/" + fileName;
-
-            modal.style.display = "block";
+        function openModal() {
+            document.getElementById("modal").style.display = "block";
         }
-
+        function closeModal() {
+            document.getElementById("modal").style.display = "none";
+        }
+        function openImage(file) {
+            document.getElementById("modalImg").src = "/uploads/" + file;
+            document.getElementById("imageModal").style.display = "block";
+        }
         function closeImage() {
             document.getElementById("imageModal").style.display = "none";
+        }
+        function setAnswer(q, val, btn) {
+            document.querySelector("input[name='q" + q + "']").value = val;
+            btn.parentElement.querySelectorAll("button").forEach(function (b) {
+                b.classList.remove("active");
+            });
+            btn.classList.add("active");
+        }
+        function outsideClose(e, id) {
+            if (e.target.id === id) {
+                document.getElementById(id).style.display = "none";
+            }
         }
     </script>
 
