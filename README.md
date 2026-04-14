@@ -12,7 +12,7 @@ This project is OMR (Optical Mark Recognition) system built using Flask and Open
   - Correct answers count
   - Wrong answers count
   - Percentage score
--Detects:
+- Detects:
   - Empty answers
   - Multiple marked answers
 - Stores results in SQLite database
