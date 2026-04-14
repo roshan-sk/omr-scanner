@@ -37,38 +37,48 @@ def build_excel(sheet_ids=None, latest_only=False):
     if not sheets:
         return None
 
-    first_answers = OMRAnswer.query.filter_by(sheet_id=sheets[0].id).all()
+    first_answers = (
+        OMRAnswer.query
+        .filter_by(sheet_id=sheets[0].id)
+        .order_by(OMRAnswer.question_no)
+        .all()
+    )
     total_questions = len(first_answers)
 
-    headers = ["File Name"]
+    headers = ["Roll Number", "File Name"]
 
     for i in range(1, total_questions + 1):
         headers.append(f"Q{str(i).zfill(3)}")
 
-    headers += ["Score", "Filled"]
+    headers += ["Correct", "Wrong", "Percentage"]
+
     ws.append(headers)
 
-    for row in ws[1]:
-        row.font = row.font.copy(bold=True)
+    for cell in ws[1]:
+        cell.font = cell.font.copy(bold=True)
 
     for sheet in sheets:
-        row = [sheet.sheet_name]
+        row = [
+            sheet.roll_number,
+            sheet.result_file
+        ]
 
-        answers = OMRAnswer.query.filter_by(sheet_id=sheet.id).all()
-
-        score = 0
-        filled = 0
+        answers = (
+            OMRAnswer.query
+            .filter_by(sheet_id=sheet.id)
+            .order_by(OMRAnswer.question_no)
+            .all()
+        )
 
         for ans in answers:
             row.append(ans.selected_option)
 
-            if ans.selected_option != "Empty":
-                filled += 1
+        row += [
+            sheet.correct_answers,
+            sheet.wrong_answers,
+            round(sheet.percentage, 2)
+        ]
 
-            if ans.is_correct:
-                score += 1
-
-        row += [score, filled]
         ws.append(row)
 
     auto_fit_columns(ws)
@@ -79,6 +89,6 @@ def build_excel(sheet_ids=None, latest_only=False):
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    filename = f"omr_results_{timestamp}.xlsx"
+    filename = f"omr_results_file_{timestamp}.xlsx"
 
     return output, filename

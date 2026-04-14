@@ -185,3 +185,88 @@ def process_column(col_img, c_indx):
     thresh = get_threshold(col_img)
     rows = detect_rows(thresh)
     return detect_answers(thresh, rows)
+
+
+def detect_roll_rows(thresh):
+    row_sum = np.sum(thresh, axis=1)
+    max_val = np.max(row_sum)
+
+    if max_val == 0:
+        return []
+
+    row_sum = row_sum / max_val
+
+    rows = []
+    in_row = False
+
+    for i in range(len(row_sum)):
+        if row_sum[i] > 0.18 and not in_row:
+            start = i
+            in_row = True
+        elif row_sum[i] < 0.18 and in_row:
+            end = i
+            rows.append((start, end))
+            in_row = False
+
+    final_rows = [(s, e) for (s, e) in rows if (e - s) > 10]
+
+    return sorted(final_rows, key=lambda x: x[0])
+
+def crop_rollno_area(image):
+    h, w = image.shape[:2]
+
+    TOP = int(h * 0.15)
+    BOTTOM = int(h * 0.315)
+    LEFT = int(w * 0.03)
+    RIGHT = int(w * 0.22)
+
+    return image[TOP:BOTTOM, LEFT:RIGHT]
+
+
+def detect_digit_from_column(thresh, rows):
+    scores = []
+
+    for (start, end) in rows:
+        bubble = thresh[start:end, :]
+
+        h, w = bubble.shape
+
+        bubble = bubble[
+            int(h * 0.3):int(h * 0.7),
+            int(w * 0.3):int(w * 0.7)
+        ]
+
+        score = cv2.countNonZero(bubble) / bubble.size
+        scores.append(score)
+
+
+    max_idx = np.argmax(scores)
+    sorted_scores = sorted(scores, reverse=True)
+
+    if sorted_scores[0] < 0.2:
+        return -1
+    elif sorted_scores[1] > 0.8 * sorted_scores[0]:
+        return -2
+    else:
+        return max_idx    
+
+def split_rollno_columns(roll_img, num_digits=8):
+    h, w = roll_img.shape[:2]
+    col_width = w // num_digits
+
+    cols = []
+    for i in range(num_digits):
+        x1 = i * col_width
+        x2 = (i + 1) * col_width
+        cols.append(roll_img[:, x1:x2])
+
+    return cols
+
+def detect_rows_in_roll_column(col_img, index):
+    thresh = get_threshold(col_img)
+
+    rows = detect_roll_rows(thresh)
+
+    digit = detect_digit_from_column(thresh, rows)
+
+    return thresh, rows, digit

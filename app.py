@@ -17,7 +17,10 @@ from omr_detect import (
     split_into_columns,
     manual_crop_column,
     process_column,
-    crop_answer_area
+    crop_answer_area,
+    crop_rollno_area,
+    split_rollno_columns,
+    detect_rows_in_roll_column
 )
 
 from models import db, OMRSheet, OMRAnswer, AnswerKey
@@ -60,15 +63,47 @@ def index():
             if file.filename == "":
                 continue
 
-            filename = os.path.basename(file.filename)
-            path = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(path)
-
             try:
-                img = cv2.imread(path)
+                original_name = os.path.basename(file.filename)
+                temp_path = os.path.join(UPLOAD_FOLDER, "temp_" + original_name)
+                file.save(temp_path)
+                
+                img = cv2.imread(temp_path)
 
                 if img is None:
                     raise Exception("Image not readable")
+                
+                warped_full = preprocess_and_warp(img)
+
+                roll_area = crop_rollno_area(warped_full)
+                roll_columns = split_rollno_columns(roll_area, num_digits=8)
+
+                roll_number = []
+
+                for i, col in enumerate(roll_columns):
+                    thresh, rows, digit = detect_rows_in_roll_column(col, i)
+
+                    if digit == -1:
+                        roll_number.append("X")
+                    elif digit == -2:
+                        roll_number.append("M")
+                    else:
+                        roll_number.append(str(digit))
+
+                roll_number_str = "".join(roll_number)
+
+                name, ext = os.path.splitext(original_name)
+
+                new_filename = f"{roll_number_str}_{name}{ext}"
+                new_path = os.path.join(UPLOAD_FOLDER, new_filename)
+
+                if os.path.exists(new_path):
+                    os.remove(new_path)
+
+                os.rename(temp_path, new_path)
+
+                path = new_path
+                filename = new_filename
 
                 cropped = crop_answer_area(img)
                 warped = preprocess_and_warp(cropped)
@@ -81,11 +116,16 @@ def index():
                     answers = process_column(cleaned, i + 1)
                     all_answers.extend(answers)
 
-                sheet = OMRSheet(sheet_name=filename)
-                db.session.add(sheet)
-                db.session.commit()
+                existing_sheet = OMRSheet.query.filter_by(roll_number=roll_number_str).first()
 
-                latest_sheet_ids.append(sheet.id)
+                if existing_sheet:
+                    existing_sheet.result_file = filename
+                    OMRAnswer.query.filter_by(sheet_id=existing_sheet.id).delete()
+                    sheet = existing_sheet
+                else:
+                    sheet = OMRSheet(result_file=filename)
+                    db.session.add(sheet)
+                    db.session.flush()
 
                 final_answers = []
 
@@ -116,8 +156,26 @@ def index():
                         "is_correct": is_correct
                     })
 
+                correct_answers = sum(1 for a in final_answers if a["is_correct"])
+                wrong_answers = len(final_answers) - correct_answers
+                total_filled = len(final_answers)
+                percentage = (correct_answers / len(final_answers)) * 100 if total_filled else 0
+
+                sheet.original_file_name = original_name
+                sheet.roll_number = roll_number_str
+                sheet.total_questions = len(final_answers)
+                sheet.correct_answers = correct_answers
+                sheet.wrong_answers = wrong_answers
+                sheet.percentage = percentage
+
                 db.session.commit()
-                results[filename] = final_answers
+                results[filename] = {
+                    "answers": final_answers,
+                    "correct": correct_answers,
+                    "wrong": wrong_answers,
+                    "percentage": round(percentage, 2)
+                }
+                latest_sheet_ids.append(sheet.id)
 
             except Exception as e:
                 results[filename] = f"Error: {str(e)}"
@@ -188,8 +246,6 @@ def export_latest_excel():
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-
 
 if __name__ == "__main__":
     with app.app_context():

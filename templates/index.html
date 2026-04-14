@@ -140,7 +140,16 @@
 
         .sticky-right-2 {
             position: sticky;
-            right: 100px;
+            right: 110px;
+            top: 0;
+            background: #0b1220;
+            z-index: 6;
+            min-width: 125px;
+        }
+
+        .sticky-right-3 {
+            position: sticky;
+            right: 225px;
             top: 0;
             background: #0b1220;
             z-index: 6;
@@ -150,7 +159,8 @@
 
         .sticky-left,
         .sticky-right-1,
-        .sticky-right-2 {
+        .sticky-right-2,
+        .sticky-right-3 {
             z-index: 1;
         }
 
@@ -326,20 +336,24 @@
                         <tr>
                             <th class="sticky-left">Sheet</th>
 
-                            {% set total = results.values()|list|first|length %}
+                            {% set first_item = results.values()|list|first %}
+                            {% set total = first_item.answers|length %}
                             {% for i in range(total) %}
                             <th style="position:sticky;top:0;background:#0b1220;">
                                 Q{{ "%03d"|format(i+1) }}
                             </th>
                             {% endfor %}
 
-                            <th class="sticky-right-2">Score</th>
-                            <th class="sticky-right-1">Filled</th>
+                            <th class="sticky-right-3">Total Correct</th>
+                            <th class="sticky-right-2">Total Wrong</th>
+                            <th class="sticky-right-1">Percentage %</th>
+
                         </tr>
                     </thead>
 
                     <tbody>
-                        {% for file, answers in results.items() %}
+                        {% for file, file_data in results.items() %}
+                        {% set answers = file_data.answers %}
                         <tr>
 
                             <td class="sticky-left">
@@ -355,11 +369,17 @@
                             </td>
                             {% endfor %}
 
-                            {% set score = answers|selectattr('is_correct')|list|length %}
-                            <td class="score sticky-right-2">{{ score }}/{{ answers|length }}</td>
+                            <td class="score sticky-right-3">
+                                {{ file_data.correct }}
+                            </td>
 
-                            {% set filled = answers|rejectattr('value','equalto','Empty')|rejectattr('value','equalto','Multiple')|list|length %}
-                            <td class="score sticky-right-1">{{ filled }}</td>
+                            <td class="score sticky-right-2">
+                                {{ file_data.wrong }}
+                            </td>
+
+                            <td class="score sticky-right-1">
+                                {{ "%.2f"|format(file_data.percentage) }}%
+                            </td>
 
                         </tr>
                         {% endfor %}
