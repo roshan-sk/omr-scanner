@@ -41,7 +41,7 @@ Each OMR sheet generates:
 - Percentage Score
 - Detailed answer-wise result
 
-## 🧠 System Workflow
+## System Workflow
 
 1. Upload OMR sheet image
 2. Image preprocessing (resize, grayscale, thresholding)
@@ -57,7 +57,7 @@ Each OMR sheet generates:
 ## Output Video
 You can watch the working demo of the project her.
 
-Google Drive Video Link : https://drive.google.com/file/d/1yRrX6nyzG4F2f1TJRni3cgrjznJnk6WK/view?usp=sharing
+Google Drive Video Link : [https://drive.google.com/file/d/1yRrX6nyzG4F2f1TJRni3cgrjznJnk6WK/view?usp=sharing](https://drive.google.com/file/d/1R5JX7WiKq0IRNxcJP29o2q9s3U_BF_bE/view?usp=sharing)
 
 
 ## Run Locally
