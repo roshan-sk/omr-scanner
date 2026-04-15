@@ -8,6 +8,8 @@ This project is OMR (Optical Mark Recognition) system built using Flask and Open
 - Automatic OMR bubble detection using OpenCV
 - Extract answers (1-A, 2-C, etc.)
 - Extract roll number from OMR sheet
+- Extract booklet number from OMR sheet
+- Extract Languages codes from the OMR sheet
 - Auto evaluation with:
   - Correct answers count
   - Wrong answers count
@@ -57,8 +59,7 @@ Each OMR sheet generates:
 ## Output Video
 You can watch the working demo of the project her.
 
-Google Drive Video Link : [https://drive.google.com/file/d/1yRrX6nyzG4F2f1TJRni3cgrjznJnk6WK/view?usp=sharing](https://drive.google.com/file/d/1R5JX7WiKq0IRNxcJP29o2q9s3U_BF_bE/view?usp=sharing)
-
+Google Drive Video Link : https://drive.google.com/file/d/1LjKCkY01Q9RPLHM88hLyOHCNBhBei_53/view?usp=sharing
 
 ## Run Locally
 
