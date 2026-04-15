@@ -270,3 +270,131 @@ def detect_rows_in_roll_column(col_img, index):
     digit = detect_digit_from_column(thresh, rows)
 
     return thresh, rows, digit
+
+
+def crop_booklet_area(image):
+    h, w = image.shape[:2]
+
+    TOP = int(h * 0.15)
+    BOTTOM = int(h * 0.315)
+    LEFT = int(w * 0.26)
+    RIGHT = int(w * 0.42)
+
+    return image[TOP:BOTTOM, LEFT:RIGHT]
+
+
+def split_booklet_columns(booklet_img, num_digits=7):
+    h, w = booklet_img.shape[:2]
+    col_width = w // num_digits
+
+    cols = []
+    for i in range(num_digits):
+        x1 = i * col_width
+        x2 = (i + 1) * col_width
+        cols.append(booklet_img[:, x1:x2])
+
+    return cols
+
+
+def detect_booklet_digit(col_img):
+    thresh = get_threshold(col_img)
+    rows = detect_roll_rows(thresh)
+    digit = detect_digit_from_column(thresh, rows)
+    return digit
+
+
+def crop_lang_code1(image):
+    h, w = image.shape[:2]
+
+    TOP = int(h * 0.15)
+    BOTTOM = int(h * 0.30)
+    LEFT = int(w * 0.65)
+    RIGHT = int(w * 0.71)
+
+    return image[TOP:BOTTOM, LEFT:RIGHT]
+
+
+def crop_lang_code2(image):
+    h, w = image.shape[:2]
+
+    TOP = int(h * 0.15)
+    BOTTOM = int(h * 0.30)
+    LEFT = int(w * 0.83)
+    RIGHT = int(w * 0.88)
+
+    return image[TOP:BOTTOM, LEFT:RIGHT]
+
+
+def detect_lang_rows(thresh):
+    row_sum = np.sum(thresh, axis=1)
+    max_val = np.max(row_sum)
+
+    if max_val == 0:
+        return []
+
+    row_sum = row_sum / max_val
+
+    rows = []
+    in_row = False
+
+    for i in range(len(row_sum)):
+        if row_sum[i] > 0.15 and not in_row:
+            start = i
+            in_row = True
+        elif row_sum[i] < 0.15 and in_row:
+            end = i
+            rows.append((start, end))
+            in_row = False
+
+    final_rows = [(s, e) for (s, e) in rows if (e - s) > 8]
+
+    return sorted(final_rows, key=lambda x: x[0])
+
+
+def detect_lang_option(thresh, rows):
+    scores = []
+
+    for (start, end) in rows:
+        bubble = thresh[start:end, :]
+
+        h, w = bubble.shape
+
+        bubble = bubble[
+            int(h * 0.3):int(h * 0.7),
+            int(w * 0.3):int(w * 0.7)
+        ]
+
+        score = cv2.countNonZero(bubble) / bubble.size
+        scores.append(score)
+
+    if len(scores) < 2:
+        return -1
+    sorted_scores = sorted(scores, reverse=True)
+
+    if sorted_scores[0] < 0.15:
+        return -1
+
+    if sorted_scores[1] > 0.8 * sorted_scores[0]:
+        return -2
+
+    return int(np.argmax(scores))
+
+
+def map_lang_option(index):
+    mapping = ['M', 'N', 'O', 'P']
+
+    if index in [0, 1, 2, 3]:
+        return mapping[index]
+    elif index in [-1,-2]:
+        return "Not Clear"
+    else:
+        return index
+    
+
+def process_lang_code(img):
+    thresh = get_threshold(img)
+    rows = detect_lang_rows(thresh)
+    if len(rows) == 0:
+        return None
+    idx = detect_lang_option(thresh, rows)
+    return map_lang_option(idx)

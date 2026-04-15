@@ -20,7 +20,13 @@ from omr_detect import (
     crop_answer_area,
     crop_rollno_area,
     split_rollno_columns,
-    detect_rows_in_roll_column
+    detect_rows_in_roll_column,
+    crop_booklet_area,
+    split_booklet_columns,
+    detect_booklet_digit,
+    crop_lang_code1,
+    crop_lang_code2,
+    process_lang_code
 )
 
 from models import db, OMRSheet, OMRAnswer, AnswerKey
@@ -78,6 +84,15 @@ def index():
                 roll_area = crop_rollno_area(warped_full)
                 roll_columns = split_rollno_columns(roll_area, num_digits=8)
 
+                booklet_area = crop_booklet_area(warped_full)
+                booklet_columns = split_booklet_columns(booklet_area, num_digits=7)
+
+                lang1_img = crop_lang_code1(warped_full)
+                lang2_img = crop_lang_code2(warped_full)
+
+                lang_code_1 = process_lang_code(lang1_img)
+                lang_code_2 = process_lang_code(lang2_img)
+
                 roll_number = []
 
                 for i, col in enumerate(roll_columns):
@@ -91,6 +106,24 @@ def index():
                         roll_number.append(str(digit))
 
                 roll_number_str = "".join(roll_number)
+
+                booklet_number = []
+
+                for col in booklet_columns:
+                    digit = detect_booklet_digit(col)
+
+                    if digit == -1:
+                        booklet_number.append("X")
+                    elif digit == -2:
+                        booklet_number.append("M")
+                    else:
+                        booklet_number.append(str(digit))
+
+                booklet_number_str = "".join(booklet_number)
+
+                valid_langs = ["M", "N", "O", "P"]
+                lang_code_1 = lang_code_1 if lang_code_1 in valid_langs else None
+                lang_code_2 = lang_code_2 if lang_code_2 in valid_langs else None
 
                 name, ext = os.path.splitext(original_name)
 
@@ -163,6 +196,9 @@ def index():
 
                 sheet.original_file_name = original_name
                 sheet.roll_number = roll_number_str
+                sheet.booklet_number = booklet_number_str
+                sheet.language_code_1 = lang_code_1
+                sheet.language_code_2 = lang_code_2
                 sheet.total_questions = len(final_answers)
                 sheet.correct_answers = correct_answers
                 sheet.wrong_answers = wrong_answers
@@ -173,7 +209,9 @@ def index():
                     "answers": final_answers,
                     "correct": correct_answers,
                     "wrong": wrong_answers,
-                    "percentage": round(percentage, 2)
+                    "percentage": round(percentage, 2),
+                    "roll_number": roll_number_str,
+                    "booklet_number": booklet_number_str,
                 }
                 latest_sheet_ids.append(sheet.id)
 
@@ -246,6 +284,31 @@ def export_latest_excel():
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+@app.route("/api/answer_key", methods=["POST"])
+def api_answer_key():
+    data = request.get_json()
+
+    if not data:
+        return {"error": "Invalid JSON"}, 400
+
+    # Clear existing keys
+    AnswerKey.query.delete()
+
+    for q_no, ans in data.items():
+        db.session.add(
+            AnswerKey(
+                question_no=q_no.upper(),
+                correct_option=ans.upper()
+            )
+        )
+
+    db.session.commit()
+
+    return {
+        "message": "Answer key saved successfully",
+        "total": len(data)
+    }, 200
 
 if __name__ == "__main__":
     with app.app_context():

@@ -13,8 +13,11 @@ class OMRSheet(db.Model):
 
     roll_number = db.Column(db.String(50))
 
+    booklet_number = db.Column(db.String(20))   
+    language_code_1 = db.Column(db.String(10))
+    language_code_2 = db.Column(db.String(10))
+    
     total_questions = db.Column(db.Integer, default=0)
-
     correct_answers = db.Column(db.Integer, default=0)
     wrong_answers = db.Column(db.Integer, default=0)
 

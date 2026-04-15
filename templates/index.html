@@ -129,8 +129,23 @@
             min-width: 180px;
         }
 
-        .sticky-right-1 {
+        .sticky-left-2 {
             position: sticky;
+            left: 210px;
+            background: #0b1220;
+            z-index: 6;
+            min-width: 140px;
+        }
+
+        .sticky-left-3 {
+            position: sticky;
+            left: 320px;
+            background: #0b1220;
+            z-index: 6;
+            min-width: 140px;
+        }
+
+        .right-3 {
             right: 0;
             top: 0;
             background: #0b1220;
@@ -138,8 +153,7 @@
             min-width: 100px;
         }
 
-        .sticky-right-2 {
-            position: sticky;
+        .right-2 {
             right: 110px;
             top: 0;
             background: #0b1220;
@@ -147,9 +161,9 @@
             min-width: 125px;
         }
 
-        .sticky-right-3 {
+        .sticky-right-1 {
             position: sticky;
-            right: 225px;
+            right: 0;
             top: 0;
             background: #0b1220;
             z-index: 6;
@@ -159,8 +173,8 @@
 
         .sticky-left,
         .sticky-right-1,
-        .sticky-right-2,
-        .sticky-right-3 {
+        .sticky-left-2,
+        .sticky-left-3 {
             z-index: 1;
         }
 
@@ -334,8 +348,9 @@
                 <table>
                     <thead>
                         <tr>
-                            <th class="sticky-left">Sheet</th>
-
+                            <th class="sticky-left">File Name</th>
+                            <th class="sticky-left-2">Roll No</th>
+                            <th class="sticky-left-3">Booklet ID</th>
                             {% set first_item = results.values()|list|first %}
                             {% set total = first_item.answers|length %}
                             {% for i in range(total) %}
@@ -344,8 +359,8 @@
                             </th>
                             {% endfor %}
 
-                            <th class="sticky-right-3">Total Correct</th>
-                            <th class="sticky-right-2">Total Wrong</th>
+                            <th class="right-3">Total Correct</th>
+                            <th class="right-2">Total Wrong</th>
                             <th class="sticky-right-1">Percentage %</th>
 
                         </tr>
@@ -361,6 +376,14 @@
                                     file }}</a>
                             </td>
 
+                            <td class="sticky-left-2">
+                                {{ file_data.roll_number }}
+                            </td>
+
+                            <td class="sticky-left-3">
+                                {{ file_data.booklet_number }}
+                            </td>
+
                             {% for ans in answers %}
                             <td>
                                 <span class="{% if ans.is_correct %}correct-text{% endif %}">
@@ -369,11 +392,11 @@
                             </td>
                             {% endfor %}
 
-                            <td class="score sticky-right-3">
+                            <td class="right-3">
                                 {{ file_data.correct }}
                             </td>
 
-                            <td class="score sticky-right-2">
+                            <td class="right-2">
                                 {{ file_data.wrong }}
                             </td>
 
